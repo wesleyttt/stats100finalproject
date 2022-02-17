@@ -50,6 +50,80 @@ ggplot(complete_data, aes(years_in_league, PER)) + geom_point()
 
 ```
 
+```{r}
+sample_players = filter(new_players, year_start >= 1990, year_end <= 2015)
+sample_players
+
+prime_per = c()
+athletes = c()
+
+for (x in 1:1399) {
+  current_player = sample_players$name[x]
+  current_dat = filter(complete_data, name == current_player)
+  prime_per = append(prime_per, mean(current_dat$PER) + sd(current_dat$PER))
+  athletes = append(athletes, current_player)
+  
+}
+
+new_df = data.frame(athletes, prime_per)
+new_df$name = athletes
+new_df
+
+```
+
+```{r}
+with_prime = merge(complete_data, new_df, by = c('name'))
+with_prime = na.omit(with_prime)
+with_prime$is_prime = with_prime$PER >= with_prime$prime_per
+with_prime
+
+ggplot(with_prime, aes(years_in_league, PER, color= is_prime)) + geom_point(alpha = 0.5) 
+
+```
+
+
+```{r}
+histogram_dat = with_prime[,c(6, 15, 16)]
+counts = c()
+histogram_dat
+
+for (x in 1:8574) {
+  if (histogram_dat$is_prime[x] == TRUE & histogram_dat$prime_per[x] >= 20) {
+    counts = append(counts, histogram_dat$years_in_league[x])
+  }
+}
+hist(counts, xlab = "years in the league", breaks = 12)
+counts
+```
+
+
+
+```{r}
+years_and_per = complete_data[,c(6, 7)]
+years_and_per = na.omit(years_and_per)
+
+per_avg = c()
+year_number = c()
+
+for (x in 1:22) {
+  pers = filter(years_and_per, years_in_league == x)
+  year_number = append(year_number, x)
+  pers
+  per_avg = append(per_avg, mean(pers$PER))
+  
+}
+
+per_avg[21] = 0
+
+
+years_and_per_avg = data.frame(year_number, per_avg)
+years_and_per_avg
+
+```
+
+```{r}
+ggplot(data=years_and_per_avg, aes(year_number, per_avg)) + geom_line() + labs(x="Years in League", y = "Average PER")
+```
 
 
 ```{r}
