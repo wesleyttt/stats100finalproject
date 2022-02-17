@@ -1,0 +1,77 @@
+---
+title: "Title"
+author: "Author"
+date: "Date"
+header-includes:
+   - \usepackage{bbm, amsmath,amsfonts,amsthm,amssymb,mathrsfs,amsxtra,amscd,latexsym, xcolor, graphicx}
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+#the include=FALSE in this chunk means the chunk will not appear in the knitted PDF. 
+#for most of your code, you probably do want it to appear in your final report, and so don't type include=FALSE
+#in order to run this code, you will need to install these packages. You can do so by going to the install button, or by going to the console and typing, for example, install.packages("knitr")
+library(knitr)
+library(latex2exp)
+library(Lahman)
+library(tidyverse)
+library(devtools)
+player_data = read.csv("nba_players_stats/player_data.csv")
+players = read.csv("nba_players_stats/Players.csv")
+seasons_stats = read.csv("nba_players_stats/Seasons_Stats.csv")
+```
+
+```{r}
+new_players = filter(player_data, year_start >= 1985, year_end <= 2020)
+new_players$Player = new_players$name
+new_players
+```
+
+
+```{r}
+stats = filter(seasons_stats, Year >= 1985)
+merged_data = merge(new_players, stats, by = c('Player'))
+```
+
+
+```{r}
+merged_data$years_in_league = merged_data$Year - merged_data$year_start
+cols = colnames(merged_data)
+cols
+```
+```{r}
+complete_data = merged_data[, c(2, 3, 4, 11, 13, 62, 18, 56, 57, 58, 59, 60, 61)]
+complete_data = filter(complete_data, years_in_league >= 0, year_end >= Year)
+complete_data
+```
+
+```{r}
+ggplot(complete_data, aes(years_in_league, PER)) + geom_point() 
+
+```
+
+
+
+```{r}
+lebron = filter(seasons_stats, Player == 'LeBron James')
+plot(lebron$Year, lebron$PER)
+abline(h = mean(lebron$PER))
+
+kobe = filter(seasons_stats, Player == 'Kobe Bryant')
+plot(kobe$Year, kobe$PER)
+abline(h = mean(kobe$PER))
+
+dwight = filter(seasons_stats, Player == 'Dwight Howard')
+plot(dwight$Year, dwight$PER)
+abline(h = mean(dwight$PER))
+
+td = filter(seasons_stats, Player == 'Tim Duncan')
+plot(td$Year, td$PER)
+abline(h = mean(td$PER))
+
+mj = filter(seasons_stats, Player == 'Michael Jordan*')
+plot(mj$Year, mj$PER)
+abline(h = mean(mj$PER))
+```
+
+
