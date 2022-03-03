@@ -14,6 +14,7 @@ output: pdf_document
 library(knitr)
 library(latex2exp)
 library(Lahman)
+library(glmnet)
 library(tidyverse)
 library(devtools)
 player_data = read.csv("nba_players_stats/player_data.csv")
@@ -22,6 +23,7 @@ seasons_stats = read.csv("nba_players_stats/Seasons_Stats.csv")
 ```
 
 ```{r}
+#First, we filter our players data to those that started after 1985 and ended thier careers before 2020
 new_players = filter(player_data, year_start >= 1985, year_end <= 2020)
 new_players$Player = new_players$name
 new_players
@@ -29,44 +31,48 @@ new_players
 
 
 ```{r}
+#merge in with seasonal stats data to get more data points
 stats = filter(seasons_stats, Year >= 1985)
 merged_data = merge(new_players, stats, by = c('Player'))
 ```
 
 
 ```{r}
+#create additional column for years in league
 merged_data$years_in_league = merged_data$Year - merged_data$year_start
 cols = colnames(merged_data)
 cols
 ```
 ```{r}
+#pick out stats we need, constructing complete data frame.
 complete_data = merged_data[, c(2, 3, 4, 11, 13, 62, 18, 56, 57, 58, 59, 60, 61)]
 complete_data = filter(complete_data, years_in_league >= 0, year_end >= Year)
 complete_data
 ```
 
 ```{r}
+#plot how PER changes with years in the league 
 ggplot(complete_data, aes(years_in_league, PER)) + geom_point() 
 
 ```
 
 ```{r}
+#create a "prime PER" stat, which is one std above the avg per across whole career
 sample_players = filter(new_players, year_start >= 1990, year_end <= 2015)
 sample_players
 
 prime_per = c()
-athletes = c()
+name = c()
 
 for (x in 1:1399) {
   current_player = sample_players$name[x]
   current_dat = filter(complete_data, name == current_player)
   prime_per = append(prime_per, mean(current_dat$PER) + sd(current_dat$PER))
-  athletes = append(athletes, current_player)
+  name = append(name, current_player)
   
 }
 
-new_df = data.frame(athletes, prime_per)
-new_df$name = athletes
+new_df = data.frame(name, prime_per)
 new_df
 
 ```
@@ -79,6 +85,35 @@ with_prime
 
 ggplot(with_prime, aes(years_in_league, PER, color= is_prime)) + geom_point(alpha = 0.5) 
 
+```
+
+```{r}
+# using clustering of old data, this will predict the next 5 years of a players career given the 20-nn 
+# from thier other stats
+#TODO: sort out duplicates from with_prime
+carmelo.plot = function(search_name){
+  #get data for player
+  player_df <- filter(with_prime, name == search_name)
+  print(player_df)
+  
+}
+# as such, it would be useful to see which stats actually have an impact on PER so verify that aging has an impact
+
+#running ridge regression
+linear.model = lm(PER~.-name, data = with_prime)
+mat = model.matrix(linear.model)[,-1]
+ridge_reg = glmnet(mat, with_prime$PER, alpha=0, family="gaussian")
+ridge_reg_err = cv.glmnet(mat, with_prime$PER, alpha=0, family="gaussian")
+plot(ridge_reg_err) 
+
+beta_CV= coef(ridge_reg, alpha=0,
+  s=ridge_reg_err$lambda.min,
+  exact=TRUE,
+  x = mat,
+  y = y)
+beta_CV #coefficient vector
+
+#we see that age is not actually a strong predictor of PER
 ```
 
 
@@ -147,5 +182,7 @@ mj = filter(seasons_stats, Player == 'Michael Jordan*')
 plot(mj$Year, mj$PER)
 abline(h = mean(mj$PER))
 ```
+
+
 
 
