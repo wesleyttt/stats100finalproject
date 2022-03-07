@@ -73,6 +73,7 @@ for (x in 1:1399) {
 }
 
 new_df = data.frame(name, prime_per)
+new_df = na.omit(new_df)
 new_df
 
 ```
@@ -88,15 +89,7 @@ ggplot(with_prime, aes(years_in_league, PER, color= is_prime)) + geom_point(alph
 ```
 
 ```{r}
-# using clustering of old data, this will predict the next 5 years of a players career given the 20-nn 
-# from thier other stats
-#TODO: sort out duplicates from with_prime
-carmelo.plot = function(search_name){
-  #get data for player
-  player_df <- filter(with_prime, name == search_name)
-  print(player_df)
-  
-}
+
 # as such, it would be useful to see which stats actually have an impact on PER so verify that aging has an impact
 
 #running ridge regression
@@ -118,7 +111,7 @@ beta_CV #coefficient vector
 
 
 ```{r}
-histogram_dat = with_prime[,c(6, 15, 16)]
+histogram_dat = with_prime[,c(6, 14, 15)]
 counts = c()
 histogram_dat
 
@@ -181,6 +174,42 @@ abline(h = mean(td$PER))
 mj = filter(seasons_stats, Player == 'Michael Jordan*')
 plot(mj$Year, mj$PER)
 abline(h = mean(mj$PER))
+```
+
+
+```{r}
+# TODO:
+# flatten the data, we want every players career to be one column. insead of per year PER have PER yr1, PER yr2, PER yr2, and box data (age entering league, blocks, etc.)
+player_names = unique(with_prime[c("name")])
+per_yr1 = c()
+per_yr2 = c()
+prediction_df <- data.frame(matrix(ncol = 5, nrow = 0))
+colnames(prediction_df) <-c("name", "per_yr1", "per_yr2", "pts_yr1", "pts_yr2")
+for (x in 2:1054){
+  player_df = filter(with_prime, name == player_names[x,1]) 
+  if (dim(player_df)[1] > 2){
+    player_df = player_df[order(player_df$Year),]
+    new_row = c(player_df[1,1],player_df[1,7],player_df[2,7],player_df[1,13], player_df[2,13])
+    prediction_df[nrow(prediction_df) + 1,] <- new_row
+  }
+}
+print(prediction_df)
+```
+
+```{r}
+prediction_df = merge(prediction_df, sample_players,by = c('name'))
+print(prediction_df)
+
+
+
+
+find.neighbors = fucntion(name) {
+}
+# need to then create a function that will take a column and will run k-nn (20ish?) on the complete data.
+#from there we will have the nearest neighbors for a given player. for each of those players, each into the complete data and see what their trajectory looks like for thier careers. etc. graph the avg of the neighbors PER over thier first 5 years in the league.
+# from there, ALSO report how accurate our prediction was compared to the players first 5 years if available)
+
+
 ```
 
 
