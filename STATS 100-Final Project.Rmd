@@ -63,16 +63,25 @@ sample_players
 
 prime_per = c()
 name = c()
+position = c()
+height = c()
+weight = c()
+
+sample_players$height = str_split(sample_players$height, "-")
+
+sample_players$height = 12 * as.integer(lapply(sample_players$height, '[[', 1)) + as.integer(lapply(sample_players$height, '[[', 2))
 
 for (x in 1:1399) {
   current_player = sample_players$name[x]
   current_dat = filter(complete_data, name == current_player)
   prime_per = append(prime_per, mean(current_dat$PER) + sd(current_dat$PER))
   name = append(name, current_player)
-  
+  position = append(position, sample_players$position[x])
+  height = append(height, sample_players$height[x])
+  weight = append(weight, sample_players$weight[x])
 }
 
-new_df = data.frame(name, prime_per)
+new_df = data.frame(name, prime_per, position, height, weight)
 new_df = na.omit(new_df)
 new_df
 
@@ -93,7 +102,7 @@ ggplot(with_prime, aes(years_in_league, PER, color= is_prime)) + geom_point(alph
 # as such, it would be useful to see which stats actually have an impact on PER so verify that aging has an impact
 
 #running ridge regression
-linear.model = lm(PER~.-name, data = with_prime)
+linear.model = lm(PER~.-name- prime_per - is_prime - year_start - year_end, data = with_prime)
 mat = model.matrix(linear.model)[,-1]
 ridge_reg = glmnet(mat, with_prime$PER, alpha=0, family="gaussian")
 ridge_reg_err = cv.glmnet(mat, with_prime$PER, alpha=0, family="gaussian")
@@ -111,7 +120,8 @@ beta_CV #coefficient vector
 
 
 ```{r}
-histogram_dat = with_prime[,c(6, 14, 15)]
+with_prime
+histogram_dat = with_prime[,c(6, 7, 18)]
 counts = c()
 histogram_dat
 
@@ -211,7 +221,6 @@ find.neighbors = fucntion(name) {
 
 
 ```
-
 
 
 
