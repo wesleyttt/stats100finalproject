@@ -183,13 +183,15 @@ abline(h = mean(mj$PER))
 player_names = unique(with_prime[c("name")])
 per_yr1 = c()
 per_yr2 = c()
-prediction_df <- data.frame(matrix(ncol = 5, nrow = 0))
-colnames(prediction_df) <-c("name", "per_yr1", "per_yr2", "pts_yr1", "pts_yr2")
+prediction_df <- data.frame(matrix(ncol = 15, nrow = 0))
+colnames(prediction_df) <-c("name", "per_yr1", "per_yr2","per_yr3","per_yr4","per_yr5","per_yr6", "per_yr7","pts_yr1", "pts_yr2", "pts_yr3", "pts_yr4", "pts_yr5", "pts_yr6", "pts_yr7")
 for (x in 2:1054){
   player_df = filter(with_prime, name == player_names[x,1]) 
-  if (dim(player_df)[1] > 2){
+  if (dim(player_df)[1] > 7){
     player_df = player_df[order(player_df$Year),]
-    new_row = c(player_df[1,1],player_df[1,7],player_df[2,7],player_df[1,13], player_df[2,13])
+    new_row = c(player_df[1,1],player_df[1,7],player_df[2,7],player_df[3,7],player_df[4,7],player_df[5,7], 
+                player_df[6,7], player_df[7,7], player_df[1,13], player_df[2,13], player_df[3,13], player_df[4,13], 
+                player_df[5,13], player_df[6,13], player_df[7,13])
     prediction_df[nrow(prediction_df) + 1,] <- new_row
   }
 }
@@ -197,21 +199,83 @@ print(prediction_df)
 ```
 
 ```{r}
-prediction_df = merge(prediction_df, sample_players,by = c('name'))
+prediction_df = merge(prediction_df, sample_players, by = c('name'))
+prediction_df = prediction_df[,c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20)]
+prediction_df = na.omit(prediction_df)
+
 print(prediction_df)
-
-
-
-
-find.neighbors = fucntion(name) {
-}
 # need to then create a function that will take a column and will run k-nn (20ish?) on the complete data.
 #from there we will have the nearest neighbors for a given player. for each of those players, each into the complete data and see what their trajectory looks like for thier careers. etc. graph the avg of the neighbors PER over thier first 5 years in the league.
 # from there, ALSO report how accurate our prediction was compared to the players first 5 years if available)
-
-
 ```
 
 
+```{r}
+find.neighbors= function (player){
+  #find the 10 closest nieghbors using first 2 yr PER/PTS and box data
+  player_col = filter(prediction_df, prediction_df$name == player)
+  print(player_col)
+  neighbors <- data.frame(matrix(ncol = 9, nrow = 0))
+  colnames(neighbors) <-c("name", "distance","per_yr1", "per_yr2","per_yr3","per_yr4","per_yr5","per_yr6", "per_yr7")
+  for (x in 1:497) {
+    other_player = prediction_df[x,]
+      if (other_player$name != player_col$name){
+            distance = (as.double(other_player$per_yr1) - as.double(player_col$per_yr1))**2 + (other_player$weight - player_col$weight)**2 + (as.double(other_player$per_yr2) - as.double(player_col$per_yr2))**2 + (as.double(other_player$pts_yr2) - as.double(player_col$pts_yr2))**2 + (as.double(other_player$pts_yr1) - as.double(player_col$pts_yr1))**2 
+      new_row <- c(other_player$name, distance, other_player$per_yr1, other_player$per_yr2,other_player$per_yr3, other_player$per_yr4,other_player$per_yr5,other_player$per_yr6, other_player$per_yr7)
+      
+      if (dim(neighbors)[1] < 10){
+        neighbors[nrow(neighbors) + 1,] <- new_row
+      } 
+      else {
+        max = max(neighbors$distance)
+        if (max > distance){
+          neighbors = filter(neighbors, distance != max)
+          neighbors[nrow(neighbors) + 1,] <- new_row
+        }
+      }
+    }
+  }
+  print(neighbors)
+  #create df of the avg of the neighbors career stats
+  predictions = data.frame(matrix(ncol = 3, nrow = 0))
+  colnames(predictions) <-c("yr", "per", "is_pred")
+  predicted_per1 = c(1,mean(as.double(neighbors$per_yr1)), TRUE)
+  predictions[nrow(predictions) + 1,] <- predicted_per1
+  predicted_per2 = c(2,mean(as.double(neighbors$per_yr2)), TRUE)
+  predictions[nrow(predictions) + 1,] <- predicted_per2
+  predicted_per3 = c(3,mean(as.double(neighbors$per_yr3)), TRUE)
+  predictions[nrow(predictions) + 1,] <- predicted_per3
+  predicted_per4 = c(4,mean(as.double(neighbors$per_yr4)), TRUE)
+  predictions[nrow(predictions) + 1,] <- predicted_per4
+  predicted_per5 = c(5,mean(as.double(neighbors$per_yr5)), TRUE)
+  predictions[nrow(predictions) + 1,] <- predicted_per5
+  predicted_per6 = c(6,mean(as.double(neighbors$per_yr6)), TRUE)
+  predictions[nrow(predictions) + 1,] <- predicted_per6
+  predicted_per7 = c(7,mean(as.double(neighbors$per_yr7)), TRUE)
+  predictions[nrow(predictions) + 1,] <- predicted_per7
+  
+  #real data
+  per1 = c(1,player_col$per_yr1, FALSE)
+  predictions[nrow(predictions) + 1,] <- per1
+  per2 = c(2,player_col$per_yr2, FALSE)
+  predictions[nrow(predictions) + 1,] <- per2
+  per3 = c(3,player_col$per_yr3, FALSE)
+  predictions[nrow(predictions) + 1,] <- per3
+  per4 = c(4,player_col$per_yr4, FALSE)
+  predictions[nrow(predictions) + 1,] <- per4
+  per5 = c(5,player_col$per_yr5, FALSE)
+  predictions[nrow(predictions) + 1,] <- per5
+  per6 = c(6,player_col$per_yr6, FALSE)
+  predictions[nrow(predictions) + 1,] <- per6
+  per7 = c(7,player_col$per_yr7, FALSE)
+  predictions[nrow(predictions) + 1,] <- per7
+  ggplot(data = predictions, aes(yr, per, color=is_pred)) + geom_point()
+  #graph the real data
+  
+  #find MSE
+}
+
+find.neighbors("Jamario Moon")
+```
 
 
